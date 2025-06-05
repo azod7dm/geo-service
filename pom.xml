@@ -7,17 +7,40 @@
     <groupId>org.example</groupId>
     <artifactId>geo-service</artifactId>
     <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source> <!-- Укажите свою версию Java -->
+        <maven.compiler.target>11</maven.compiler.target> <!-- Укажите свою версию Java -->
+        <junit.version>5.8.2</junit.version> <!-- Версия JUnit -->
+        <mockito.version>4.11.3</mockito.version> <!-- Версия Mockito -->
+    </properties>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version> <!-- Указав версию плагина -->
                 <configuration>
-                    <source>6</source>
-                    <target>6</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope> <!-- Указываем, что это тестовая зависимость -->
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>4.0.0</version>  <!-- Используйте последнюю версию -->
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
