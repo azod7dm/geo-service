@@ -2,14 +2,19 @@ package ru.netology.sender;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import ru.netology.entity.Location;
 import ru.netology.entity.Country;
 import ru.netology.geo.GeoService;
 import ru.netology.i18n.LocalizationService;
+import ru.netology.i18n.LocalizationServiceImpl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,72 +23,56 @@ public class MessageSenderImplTest {
     private GeoService geoServiceMock;
     private LocalizationService localizationServiceMock;
     private MessageSenderImpl messageSender;
+    private LocalizationServiceImpl localizationService;
 
     @BeforeEach
     public void setUp() {
         geoServiceMock = Mockito.mock(GeoService.class);
         localizationServiceMock = Mockito.mock(LocalizationService.class);
         messageSender = new MessageSenderImpl(geoServiceMock, localizationServiceMock);
+        localizationService = new LocalizationServiceImpl(); // Инициализация реального экземпляра
     }
 
-    @Test
-    public void testSendMessageForRussianIP() {
-        // Настройка заглушки
-        Mockito.when(geoServiceMock.byIp("176.100.100.1"))
-                .thenReturn(new Location("Moscow", Country.RUSSIA, "Lenina", 1));
-        Mockito.when(localizationServiceMock.locale(Country.RUSSIA))
-                .thenReturn("Привет");
+    static Stream<Arguments> provideIpAddressesForTesting() {
+        return Stream.of(
+                Arguments.of("176.100.100.1", Country.RUSSIA, "Привет"),
+                Arguments.of("192.0.2.1", Country.USA, "Hello"),
+                Arguments.of("1.1.1.1", Country.BRAZIL, "Welcome"), // Обычно для неизвестной страны
+                Arguments.of("0.0.0.0", Country.GERMANY, "Hallo")   // И так далее
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideIpAddressesForTesting")
+    public void testSendMessage(String ipAddress, Country country, String expectedMessage) {
+        Mockito.when(geoServiceMock.byIp(ipAddress))
+                .thenReturn(new Location("Unknown", country, "Unknown", 0));
+        Mockito.when(localizationServiceMock.locale(country))
+                .thenReturn(expectedMessage);
 
         Map<String, String> headers = new HashMap<>();
-        headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, "176.100.100.1");
+        headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, ipAddress);
 
         String result = messageSender.send(headers);
 
-        assertEquals("Привет", result);
+        assertEquals(expectedMessage, result);
     }
 
     @Test
-    public void testSendMessageForUSIP() {
-        Mockito.when(geoServiceMock.byIp("192.0.2.1"))
-                .thenReturn(new Location("New York", Country.USA, "5th Avenue", 1));
-        Mockito.when(localizationServiceMock.locale(Country.USA))
-                .thenReturn("Hello");
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, "192.0.2.1");
-
-        String result = messageSender.send(headers);
-
-        assertEquals("Hello", result);
+    public void testLocaleForRussia() {
+        String result = localizationService.locale(Country.RUSSIA);
+        assertEquals("Добро пожаловать", result, "Localization for Russia should be 'Добро пожаловать'");
     }
 
     @Test
-    public void testSendMessageForUnknownCountry() {
-        // Здесь можно использовать одну из стран, например, RUSSIA, чтобы проверить работу
-        Mockito.when(geoServiceMock.byIp("1.1.1.1"))
-                .thenReturn(new Location("Unknown", Country.RUSSIA, "Unknown", 0));
-        Mockito.when(localizationServiceMock.locale(Country.RUSSIA))
-                .thenReturn("Welcome");
+    public void testLocaleForOtherCountries() {
+        String resultUSA = localizationService.locale(Country.USA);
+        assertEquals("Welcome", resultUSA, "Localization for USA should be 'Welcome'");
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, "1.1.1.1");
+        String resultGermany = localizationService.locale(Country.GERMANY);
+        assertEquals("Welcome", resultGermany, "Localization for Germany should be 'Welcome'");
 
-        String result = messageSender.send(headers);
-
-        assertEquals("Welcome", result);
-    }
-
-    @Test
-    public void testSendMessageWithEmptyIP() {
-        Mockito.when(localizationServiceMock.locale(Country.USA))
-                .thenReturn("Hello");
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put(MessageSenderImpl.IP_ADDRESS_HEADER, ""); // Пустой IP-адрес
-
-        String result = messageSender.send(headers);
-
-        // По умолчанию возвращает (например, для пустого IP)
-        assertEquals("Hello", result);
+        String resultBrazil = localizationService.locale(Country.BRAZIL);
+        assertEquals("Welcome", resultBrazil, "Localization for Brazil should be 'Welcome'");
     }
 }
