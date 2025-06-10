@@ -37,8 +37,8 @@ public class MessageSenderImplTest {
         return Stream.of(
                 Arguments.of("176.100.100.1", Country.RUSSIA, "Привет"),
                 Arguments.of("192.0.2.1", Country.USA, "Hello"),
-                Arguments.of("1.1.1.1", Country.BRAZIL, "Welcome"), // Обычно для неизвестной страны
-                Arguments.of("0.0.0.0", Country.GERMANY, "Hallo")   // И так далее
+                Arguments.of("1.1.1.1", Country.BRAZIL, "Welcome"),
+                Arguments.of("0.0.0.0", Country.GERMANY, "Hallo")
         );
     }
 
@@ -56,6 +56,25 @@ public class MessageSenderImplTest {
         String result = messageSender.send(headers);
 
         assertEquals(expectedMessage, result);
+    }
+
+    // Новый тест для метода byIp()
+    @ParameterizedTest
+    @MethodSource("provideIpAddressesForTesting")
+    public void testByIp(String ipAddress, Country country, String expectedMessage) {
+        // Подготовка данных
+        Location expectedLocation = new Location("Unknown", country, "Unknown", 0);
+
+        // Настройка мока
+        Mockito.when(geoServiceMock.byIp(ipAddress)).thenReturn(expectedLocation);
+
+        // Вызов метода и получение результата
+        Location actualLocation = geoServiceMock.byIp(ipAddress);
+
+        // Проверка результатов
+        assertEquals(expectedLocation.getCountry(), actualLocation.getCountry(), "Country should match for the given IP.");
+
+        assertEquals(expectedLocation.getCity(), actualLocation.getCity(), "City should match for 'Unknown'");
     }
 
     @Test
